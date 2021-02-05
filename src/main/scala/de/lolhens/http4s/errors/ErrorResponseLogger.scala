@@ -9,10 +9,17 @@ trait ErrorResponseLogger[-E] {
 
 object ErrorResponseLogger {
 
-  object stderr {
-    implicit val stacktraceErrorResponseLogger: ErrorResponseLogger[Throwable] = new ErrorResponseLogger[Throwable] {
+  object noop {
+    implicit val noopErrorResponseLogger: ErrorResponseLogger[Throwable] = new ErrorResponseLogger[Throwable] {
       override def log[F[_] : Sync](throwable: Throwable): F[Unit] =
-        Sync[F].delay(System.err.println(throwable.stackTrace))
+        Sync[F].unit
+    }
+  }
+
+  object stderr {
+    implicit val stdoutErrorResponseLogger: ErrorResponseLogger[Throwable] = new ErrorResponseLogger[Throwable] {
+      override def log[F[_] : Sync](throwable: Throwable): F[Unit] =
+        Sync[F].delay(System.err.println(throwable.stackTraceString))
     }
   }
 

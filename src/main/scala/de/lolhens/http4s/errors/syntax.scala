@@ -3,8 +3,9 @@ package de.lolhens.http4s.errors
 import cats.data.EitherT
 import cats.effect.{BracketThrow, Sync}
 import cats.syntax.applicativeError._
-import org.http4s.Response
-import org.http4s.dsl.impl.EntityResponseGenerator
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import org.http4s.{Response, Status}
 
 import java.io.{PrintWriter, StringWriter}
 import scala.reflect.ClassTag
@@ -13,7 +14,7 @@ import scala.util.control.NonFatal
 object syntax {
 
   implicit class ThrowableOps(val throwable: Throwable) extends AnyVal {
-    def stackTrace: String = {
+    def stackTraceString: String = {
       val stringWriter = new StringWriter()
       throwable.printStackTrace(new PrintWriter(stringWriter))
       stringWriter.toString
@@ -21,44 +22,47 @@ object syntax {
   }
 
   implicit class EitherTResponseOps[F[_], A](val eitherT: EitherT[F, Response[F], A]) extends AnyVal {
-    def orError(implicit BracketThrowF: BracketThrow[F]): F[A] =
-      eitherT.leftSemiflatMap[A](response => BracketThrowF.raiseError(ResponseException[F](response))).merge
+    def throwErrorResponse(implicit BracketThrowF: BracketThrow[F]): F[A] =
+      eitherT.leftSemiflatMap[A](response => BracketThrowF.raiseError(ErrorResponse[F](response))).merge
   }
 
   implicit def eitherTResponseNothingOps[F[_]](eitherT: EitherT[F, Response[F], Nothing]): EitherTResponseOps[F, Nothing] =
     new EitherTResponseOps[F, Nothing](eitherT)
 
   implicit class ResponseOps[F[_], A](val f: F[A]) extends AnyVal {
-    private val ResponseF = implicitly[ClassTag[Response[F]]]
+    def attemptEitherT(implicit BracketThrowF: BracketThrow[F]): EitherT[F, Throwable, A] =
+      EitherT(f.attempt)
 
-    def orStacktrace(implicit SyncF: Sync[F]): EitherT[F, String, A] = {
-      EitherT(f.attempt).leftSemiflatMap {
-        case e@ResponseException(ResponseF(_)) =>
+    def orStackTraceString(implicit SyncF: Sync[F]): EitherT[F, String, A] = {
+      val ResponseF = implicitly[ClassTag[Response[F]]]
+      f.attemptEitherT.leftSemiflatMap {
+        case e@ErrorResponse(ResponseF(_)) =>
           SyncF.raiseError(e)
 
         case NonFatal(throwable) =>
-          SyncF.delay(throwable.stackTrace)
+          SyncF.delay(throwable.stackTraceString)
 
         case throwable =>
           SyncF.raiseError(throwable)
       }
     }
 
-    def orErrorResponse(status: EntityResponseGenerator[F, F])
+    def orErrorResponse(status: Status)
                        (implicit
-                        errorResponseLogger: ErrorResponseLogger[Throwable],
-                        errorResponseEncoder: ErrorResponseEncoder[Throwable],
+                        throwableResponseLogger: ErrorResponseLogger[Throwable],
+                        throwableResponseEncoder: ErrorResponseEncoder[Throwable],
                         SyncF: Sync[F],
                        ): EitherT[F, Response[F], A] = {
-      EitherT(f.attempt).leftSemiflatMap {
-        case ResponseException(response@ResponseF(_)) =>
+      val ResponseF = implicitly[ClassTag[Response[F]]]
+      f.attemptEitherT.leftSemiflatMap {
+        case ErrorResponse(ResponseF(response)) =>
           SyncF.delay(response)
 
         case NonFatal(throwable) =>
           SyncF.defer {
             for {
-              _ <- errorResponseLogger.log(throwable)
-              response <- status(errorResponseEncoder.response(throwable))
+              _ <- throwableResponseLogger.log(throwable)
+              response <- throwableResponseEncoder.response(status, throwable)
             } yield
               response
           }
@@ -69,15 +73,51 @@ object syntax {
     }
   }
 
-  /*implicit class EitherTOps[F[_], E, A](val eitherT: EitherT[F, E, A]) extends AnyVal {
-    def orErrorResponse(status: EntityResponseGenerator[F, F])
+  implicit def responseNothingOps[F[_]](f: F[Nothing]): ResponseOps[F, Nothing] =
+    new ResponseOps[F, Nothing](f)
+
+  implicit class EitherTOps[F[_], E, A](val eitherT: EitherT[F, E, A]) extends AnyVal {
+    def toErrorResponse(status: Status)
                        (implicit
-                        throwableResponseLogger: ErrorResponseLogger[Throwable],
-                        throwableResponseEncoder: ErrorResponseEncoder[Throwable],
                         errorResponseLogger: ErrorResponseLogger[E],
                         errorResponseEncoder: ErrorResponseEncoder[E],
+                        throwableResponseLogger: ErrorResponseLogger[Throwable],
+                        throwableResponseEncoder: ErrorResponseEncoder[Throwable],
                         SyncF: Sync[F],
-                       ): EitherT[F, Response[F], A]
-  }*/
+                       ): EitherT[F, Response[F], A] = {
+      val ResponseF = implicitly[ClassTag[Response[F]]]
+      eitherT.value.attemptEitherT.biflatMap({
+        case ErrorResponse(ResponseF(response)) =>
+          EitherT.left(SyncF.delay(response))
+
+        case NonFatal(throwable) =>
+          EitherT.left(SyncF.defer {
+            for {
+              _ <- throwableResponseLogger.log(throwable)
+              response <- throwableResponseEncoder.response(status, throwable)
+            } yield
+              response
+          })
+
+        case throwable =>
+          EitherT.liftF(SyncF.raiseError(throwable))
+      }, {
+        case Left(error) =>
+          EitherT.left(SyncF.defer {
+            for {
+              _ <- errorResponseLogger.log(error)
+              response <- errorResponseEncoder.response(status, error)
+            } yield
+              response
+          })
+
+        case Right(value) =>
+          EitherT.rightT(value)
+      })
+    }
+  }
+
+  implicit def eitherTNothingOps[F[_], E](eitherT: EitherT[F, E, Nothing]): EitherTOps[F, E, Nothing] =
+    new EitherTOps[F, E, Nothing](eitherT)
 
 }
