@@ -84,24 +84,8 @@ object syntax {
                         throwableResponseLogger: ErrorResponseLogger[Throwable],
                         throwableResponseEncoder: ErrorResponseEncoder[Throwable],
                         SyncF: Sync[F],
-                       ): EitherT[F, Response[F], A] = {
-      val ResponseF = implicitly[ClassTag[Response[F]]]
-      eitherT.value.attemptEitherT.biflatMap({
-        case ErrorResponse(ResponseF(response)) =>
-          EitherT.left(SyncF.delay(response))
-
-        case NonFatal(throwable) =>
-          EitherT.left(SyncF.defer {
-            for {
-              _ <- throwableResponseLogger.log(throwable)
-              response <- throwableResponseEncoder.response(status, throwable)
-            } yield
-              response
-          })
-
-        case throwable =>
-          EitherT.liftF(SyncF.raiseError(throwable))
-      }, {
+                       ): EitherT[F, Response[F], A] =
+      eitherT.value.orErrorResponse(status).flatMap {
         case Left(error) =>
           EitherT.left(SyncF.defer {
             for {
@@ -113,8 +97,7 @@ object syntax {
 
         case Right(value) =>
           EitherT.rightT(value)
-      })
-    }
+      }
   }
 
   implicit def eitherTNothingOps[F[_], E](eitherT: EitherT[F, E, Nothing]): EitherTOps[F, E, Nothing] =
