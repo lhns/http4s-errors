@@ -9,19 +9,21 @@ trait ErrorResponseEncoder[-E] {
 }
 
 object ErrorResponseEncoder {
+  def apply[E](implicit errorResponseEncoder: ErrorResponseEncoder[E]): ErrorResponseEncoder[E] = errorResponseEncoder
+
+  def instance[E](f: (Status, E) => String): ErrorResponseEncoder[E] = new ErrorResponseEncoder[E] {
+    override def response[F[_] : Sync](status: Status, error: E): F[Response[F]] =
+      Sync[F].delay(Response[F](status).withEntity(f(status, error)))
+  }
 
   object status {
-    implicit val statusErrorResponseEncoder: ErrorResponseEncoder[Throwable] = new ErrorResponseEncoder[Throwable] {
-      override def response[F[_] : Sync](status: Status, throwable: Throwable): F[Response[F]] =
-        Sync[F].delay(Response[F](status).withEntity(status.reason))
-    }
+    implicit val statusErrorResponseEncoder: ErrorResponseEncoder[Throwable] =
+      instance((status, _) => status.reason)
   }
 
   object stacktrace {
-    implicit val stacktraceErrorResponseEncoder: ErrorResponseEncoder[Throwable] = new ErrorResponseEncoder[Throwable] {
-      override def response[F[_] : Sync](status: Status, throwable: Throwable): F[Response[F]] =
-        Sync[F].delay(Response[F](status).withEntity(throwable.stackTraceString))
-    }
+    implicit val stacktraceErrorResponseEncoder: ErrorResponseEncoder[Throwable] =
+      instance((_, throwable) => throwable.stackTraceString)
   }
 
 }
