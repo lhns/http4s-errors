@@ -6,7 +6,7 @@
 
 ### build.sbt
 ```sbt
-libraryDependencies += "de.lolhens" %% "http4s-errors" % "0.1.1"
+libraryDependencies += "de.lolhens" %% "http4s-errors" % "0.1.2"
 ```
 
 ## License
