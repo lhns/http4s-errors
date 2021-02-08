@@ -21,6 +21,11 @@ object ErrorResponseEncoder {
       instance((status, _) => status.reason)
   }
 
+  object message {
+    implicit val messageErrorResponseEncoder: ErrorResponseEncoder[Throwable] =
+      instance((_, throwable) => throwable.getMessage)
+  }
+
   object stacktrace {
     implicit val stacktraceErrorResponseEncoder: ErrorResponseEncoder[Throwable] =
       instance((_, throwable) => throwable.stackTraceString)
