@@ -5,6 +5,8 @@ version := "0.0.1-SNAPSHOT"
 scalaVersion := "2.13.5"
 crossScalaVersions := Seq("2.12.13", scalaVersion.value)
 
+ThisBuild / versionScheme := Some("early-semver")
+
 licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))
 
 homepage := Some(url("https://github.com/LolHens/http4s-errors"))
@@ -20,11 +22,11 @@ developers := List(
 
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.30",
-  "org.typelevel" %% "cats-effect" % "2.3.3",
-  "org.http4s" %% "http4s-core" % "0.21.20",
+  "org.typelevel" %% "cats-effect" % "2.4.0",
+  "org.http4s" %% "http4s-core" % "0.21.21",
   "org.scalameta" %% "munit" % "0.7.22" % Test,
-  "de.lolhens" %% "munit-tagless-final" % "0.1.0" % Test,
-  "org.http4s" %% "http4s-dsl" % "0.21.20" % Test,
+  "de.lolhens" %% "munit-tagless-final" % "0.0.1" % Test,
+  "org.http4s" %% "http4s-dsl" % "0.21.21" % Test,
 )
 
 testFrameworks += new TestFramework("munit.Framework")
