@@ -22,11 +22,11 @@ developers := List(
 
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.30",
-  "org.typelevel" %% "cats-effect" % "3.0.0",
-  "org.http4s" %% "http4s-core" % "0.21.20",
+  "org.typelevel" %% "cats-effect" % "2.4.0",
+  "org.http4s" %% "http4s-core" % "0.21.21",
   "org.scalameta" %% "munit" % "0.7.22" % Test,
   "de.lolhens" %% "munit-tagless-final" % "0.0.1" % Test,
-  "org.http4s" %% "http4s-dsl" % "0.21.20" % Test,
+  "org.http4s" %% "http4s-dsl" % "0.21.21" % Test,
 )
 
 testFrameworks += new TestFramework("munit.Framework")
