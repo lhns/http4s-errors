@@ -1,7 +1,7 @@
 package de.lolhens.http4s.errors
 
 import cats.data.EitherT
-import cats.effect.{BracketThrow, Sync}
+import cats.effect.Sync
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
@@ -10,6 +10,7 @@ import org.http4s.{Response, Status}
 import java.io.{PrintWriter, StringWriter}
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
+import cats.effect.MonadCancelThrow
 
 object syntax {
 
@@ -22,7 +23,7 @@ object syntax {
   }
 
   implicit class EitherTResponseOps[F[_], A](val eitherT: EitherT[F, Response[F], A]) extends AnyVal {
-    def throwErrorResponse(implicit BracketThrowF: BracketThrow[F]): F[A] =
+    def throwErrorResponse(implicit BracketThrowF: MonadCancelThrow[F]): F[A] =
       eitherT.leftSemiflatMap[A](response => BracketThrowF.raiseError(ErrorResponse[F](response))).merge
   }
 
@@ -30,7 +31,7 @@ object syntax {
     new EitherTResponseOps[F, Nothing](eitherT)
 
   implicit class ResponseOps[F[_], A](val f: F[A]) extends AnyVal {
-    def attemptEitherT(implicit BracketThrowF: BracketThrow[F]): EitherT[F, Throwable, A] =
+    def attemptEitherT(implicit BracketThrowF: MonadCancelThrow[F]): EitherT[F, Throwable, A] =
       EitherT(f.attempt)
 
     def orStackTraceString(implicit SyncF: Sync[F]): EitherT[F, String, A] = {
