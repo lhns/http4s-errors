@@ -25,11 +25,11 @@ developers := List(
 )
 
 libraryDependencies ++= Seq(
-  "org.http4s" %% "http4s-core" % "1.0.0-M16",
+  "org.http4s" %% "http4s-core" % "1.0.0-M21",
   "org.slf4j" % "slf4j-api" % "1.7.30",
   "org.typelevel" %% "cats-effect" % "3.1.0",
   "de.lolhens" %% "munit-tagless-final" % "0.1.2" % Test,
-  "org.http4s" %% "http4s-dsl" % "1.0.0-M16" % Test,
+  "org.http4s" %% "http4s-dsl" % "1.0.0-M21" % Test,
   "org.scalameta" %% "munit" % "0.7.25" % Test,
 )
 
