@@ -24,7 +24,7 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.31",
   "org.typelevel" %% "cats-effect" % "2.5.1",
   "org.http4s" %% "http4s-core" % "0.21.24",
-  "org.scalameta" %% "munit" % "0.7.26" % Test,
+  "org.scalameta" %% "munit" % "0.7.27" % Test,
   "de.lolhens" %% "munit-tagless-final" % "0.0.1" % Test,
   "org.http4s" %% "http4s-dsl" % "0.21.24" % Test,
 )
