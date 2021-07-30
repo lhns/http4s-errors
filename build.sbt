@@ -6,8 +6,8 @@ version := {
     .getOrElse("0.0.1-SNAPSHOT")
 }
 
-scalaVersion := "2.13.5"
-crossScalaVersions := Seq("2.12.13", scalaVersion.value)
+scalaVersion := "2.13.6"
+crossScalaVersions := Seq("2.12.14", scalaVersion.value)
 
 ThisBuild / versionScheme := Some("early-semver")
 
@@ -25,12 +25,12 @@ developers := List(
 )
 
 libraryDependencies ++= Seq(
-  "org.http4s" %% "http4s-core" % "1.0.0-M21",
-  "org.slf4j" % "slf4j-api" % "1.7.30",
+  "org.slf4j" % "slf4j-api" % "1.7.31",
   "org.typelevel" %% "cats-effect" % "3.1.0",
+  "org.http4s" %% "http4s-core" % "0.23.0",
+  "org.scalameta" %% "munit" % "0.7.27" % Test,
   "de.lolhens" %% "munit-tagless-final" % "0.1.2" % Test,
-  "org.http4s" %% "http4s-dsl" % "1.0.0-M21" % Test,
-  "org.scalameta" %% "munit" % "0.7.25" % Test,
+  "org.http4s" %% "http4s-dsl" % "0.23.0" % Test,
 )
 
 testFrameworks += new TestFramework("munit.Framework")
