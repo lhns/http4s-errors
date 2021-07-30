@@ -1,6 +1,7 @@
 package de.lolhens.http4s.errors
 
 import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 
 import scala.concurrent.Future
 
