@@ -1,7 +1,8 @@
 package de.lolhens.http4s.errors
 
+import cats.MonadThrow
 import cats.data.{EitherT, OptionT}
-import cats.effect.{BracketThrow, Sync}
+import cats.effect.Sync
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
@@ -22,28 +23,28 @@ object syntax {
   }
 
   implicit class EitherTResponseOps[F[_], A](val eitherT: EitherT[F, Response[F], A]) extends AnyVal {
-    def throwErrorResponse(implicit BracketThrowF: BracketThrow[F]): F[A] =
-      eitherT.leftSemiflatMap[A](response => BracketThrowF.raiseError(ErrorResponse[F](response))).merge
+    def throwErrorResponse(implicit F: MonadThrow[F]): F[A] =
+      eitherT.leftSemiflatMap[A](response => F.raiseError(ErrorResponse[F](response))).merge
   }
 
   implicit def eitherTResponseNothingOps[F[_]](eitherT: EitherT[F, Response[F], Nothing]): EitherTResponseOps[F, Nothing] =
     new EitherTResponseOps[F, Nothing](eitherT)
 
   implicit class ResponseOps[F[_], A](val f: F[A]) extends AnyVal {
-    def attemptEitherT(implicit BracketThrowF: BracketThrow[F]): EitherT[F, Throwable, A] =
+    def attemptEitherT(implicit F: MonadThrow[F]): EitherT[F, Throwable, A] =
       EitherT(f.attempt)
 
-    def orStackTraceString(implicit SyncF: Sync[F]): EitherT[F, String, A] = {
+    def orStackTraceString(implicit F: Sync[F]): EitherT[F, String, A] = {
       val ResponseF = implicitly[ClassTag[Response[F]]]
       f.attemptEitherT.leftSemiflatMap {
         case e@ErrorResponse(ResponseF(_)) =>
-          SyncF.raiseError(e)
+          F.raiseError(e)
 
         case NonFatal(throwable) =>
-          SyncF.delay(throwable.stackTraceString)
+          F.delay(throwable.stackTraceString)
 
         case throwable =>
-          SyncF.raiseError(throwable)
+          F.raiseError(throwable)
       }
     }
 
@@ -51,15 +52,15 @@ object syntax {
                        (implicit
                         throwableResponseLogger: ErrorResponseLogger[Throwable],
                         throwableResponseEncoder: ErrorResponseEncoder[Throwable],
-                        SyncF: Sync[F],
+                        F: Sync[F],
                        ): EitherT[F, Response[F], A] = {
       val ResponseF = implicitly[ClassTag[Response[F]]]
       f.attemptEitherT.leftSemiflatMap {
         case ErrorResponse(ResponseF(response)) =>
-          SyncF.delay(response)
+          F.delay(response)
 
         case NonFatal(throwable) =>
-          SyncF.defer {
+          F.defer {
             for {
               _ <- throwableResponseLogger.log(throwable)
               response <- throwableResponseEncoder.response(status, throwable)
@@ -68,7 +69,7 @@ object syntax {
           }
 
         case throwable =>
-          SyncF.raiseError(throwable)
+          F.raiseError(throwable)
       }
     }
   }
@@ -81,11 +82,11 @@ object syntax {
                              (implicit
                               errorResponseLogger: ErrorResponseLogger[E],
                               errorResponseEncoder: ErrorResponseEncoder[E],
-                              SyncF: Sync[F],
+                              F: Sync[F],
                              ): EitherT[F, Response[F], A] =
       either match {
         case Left(error) =>
-          EitherT.left(SyncF.defer {
+          EitherT.left(F.defer {
             for {
               _ <- errorResponseLogger.log(error)
               response <- errorResponseEncoder.response(status, error)
@@ -103,11 +104,11 @@ object syntax {
                              (implicit
                               errorResponseLogger: ErrorResponseLogger[Unit],
                               errorResponseEncoder: ErrorResponseEncoder[Unit],
-                              SyncF: Sync[F],
+                              F: Sync[F],
                              ): EitherT[F, Response[F], A] =
       option match {
         case None =>
-          EitherT.left(SyncF.defer {
+          EitherT.left(F.defer {
             for {
               _ <- errorResponseLogger.log(())
               response <- errorResponseEncoder.response(status, ())
@@ -127,7 +128,7 @@ object syntax {
                         errorResponseEncoder: ErrorResponseEncoder[E],
                         throwableResponseLogger: ErrorResponseLogger[Throwable],
                         throwableResponseEncoder: ErrorResponseEncoder[Throwable],
-                        SyncF: Sync[F],
+                        F: Sync[F],
                        ): EitherT[F, Response[F], A] =
       eitherT.value.orErrorResponse(status).flatMap(_.toErrorResponse(status))
   }
@@ -139,7 +140,7 @@ object syntax {
                         errorResponseEncoder: ErrorResponseEncoder[Unit],
                         throwableResponseLogger: ErrorResponseLogger[Throwable],
                         throwableResponseEncoder: ErrorResponseEncoder[Throwable],
-                        SyncF: Sync[F],
+                        F: Sync[F],
                        ): EitherT[F, Response[F], A] =
       optionT.value.orErrorResponse(status).flatMap(_.toErrorResponse(status))
   }

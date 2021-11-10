@@ -1,9 +1,15 @@
 organization := "de.lolhens"
 name := "http4s-errors"
-version := "0.0.1-SNAPSHOT"
+version := {
+  val Tag = "refs/tags/(.*)".r
+  sys.env.get("CI_VERSION").collect { case Tag(tag) => tag }
+    .getOrElse("0.0.1-SNAPSHOT")
+}
 
-scalaVersion := "2.13.4"
-crossScalaVersions := Seq("2.12.13", scalaVersion.value)
+scalaVersion := "2.13.7"
+crossScalaVersions := Seq("2.12.15", scalaVersion.value)
+
+ThisBuild / versionScheme := Some("early-semver")
 
 licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))
 
@@ -19,12 +25,12 @@ developers := List(
 )
 
 libraryDependencies ++= Seq(
-  "org.slf4j" % "slf4j-api" % "1.7.30",
-  "org.typelevel" %% "cats-effect" % "2.3.1",
-  "org.http4s" %% "http4s-core" % "0.21.18",
-  "org.scalameta" %% "munit" % "0.7.21" % Test,
-  "de.lolhens" %% "munit-tagless-final" % "0.0.1" % Test,
-  "org.http4s" %% "http4s-dsl" % "0.21.18" % Test,
+  "org.slf4j" % "slf4j-api" % "1.7.32",
+  "org.typelevel" %% "cats-effect" % "3.2.9",
+  "org.http4s" %% "http4s-core" % "0.23.6",
+  "org.scalameta" %% "munit" % "0.7.29" % Test,
+  "de.lolhens" %% "munit-tagless-final" % "0.1.3" % Test,
+  "org.http4s" %% "http4s-dsl" % "0.23.6" % Test,
 )
 
 testFrameworks += new TestFramework("munit.Framework")
@@ -32,11 +38,6 @@ testFrameworks += new TestFramework("munit.Framework")
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
 Compile / doc / sources := Seq.empty
-
-version := {
-  val tagPrefix = "refs/tags/"
-  sys.env.get("CI_VERSION").filter(_.startsWith(tagPrefix)).map(_.drop(tagPrefix.length)).getOrElse(version.value)
-}
 
 publishMavenStyle := true
 
