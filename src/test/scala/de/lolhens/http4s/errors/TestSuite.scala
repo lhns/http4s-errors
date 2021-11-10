@@ -16,6 +16,7 @@ class TestSuite extends IOSuite {
       response <- Ok(response).orErrorResponse(BadRequest)
     } yield
       response)
+      .toErrorResponse(InternalServerError)
       .merge
       .flatMap(e => e.as[String].map((e, _)))
       .map {

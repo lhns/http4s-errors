@@ -1,6 +1,6 @@
 package de.lolhens.http4s.errors
 
-import cats.data.EitherT
+import cats.data.{EitherT, OptionT}
 import cats.effect.{BracketThrow, Sync}
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
@@ -76,16 +76,14 @@ object syntax {
   implicit def responseNothingOps[F[_]](f: F[Nothing]): ResponseOps[F, Nothing] =
     new ResponseOps[F, Nothing](f)
 
-  implicit class EitherTOps[F[_], E, A](val eitherT: EitherT[F, E, A]) extends AnyVal {
-    def toErrorResponse(status: Status)
-                       (implicit
-                        errorResponseLogger: ErrorResponseLogger[E],
-                        errorResponseEncoder: ErrorResponseEncoder[E],
-                        throwableResponseLogger: ErrorResponseLogger[Throwable],
-                        throwableResponseEncoder: ErrorResponseEncoder[Throwable],
-                        SyncF: Sync[F],
-                       ): EitherT[F, Response[F], A] =
-      eitherT.value.orErrorResponse(status).flatMap {
+  implicit class EitherOps[E, A](val either: Either[E, A]) extends AnyVal {
+    def toErrorResponse[F[_]](status: Status)
+                             (implicit
+                              errorResponseLogger: ErrorResponseLogger[E],
+                              errorResponseEncoder: ErrorResponseEncoder[E],
+                              SyncF: Sync[F],
+                             ): EitherT[F, Response[F], A] =
+      either match {
         case Left(error) =>
           EitherT.left(SyncF.defer {
             for {
@@ -98,6 +96,52 @@ object syntax {
         case Right(value) =>
           EitherT.rightT(value)
       }
+  }
+
+  implicit class OptionOps[A](val option: Option[A]) extends AnyVal {
+    def toErrorResponse[F[_]](status: Status)
+                             (implicit
+                              errorResponseLogger: ErrorResponseLogger[Unit],
+                              errorResponseEncoder: ErrorResponseEncoder[Unit],
+                              SyncF: Sync[F],
+                             ): EitherT[F, Response[F], A] =
+      option match {
+        case None =>
+          EitherT.left(SyncF.defer {
+            for {
+              _ <- errorResponseLogger.log(())
+              response <- errorResponseEncoder.response(status, ())
+            } yield
+              response
+          })
+
+        case Some(value) =>
+          EitherT.rightT(value)
+      }
+  }
+
+  implicit class EitherTOps[F[_], E, A](val eitherT: EitherT[F, E, A]) extends AnyVal {
+    def toErrorResponse(status: Status)
+                       (implicit
+                        errorResponseLogger: ErrorResponseLogger[E],
+                        errorResponseEncoder: ErrorResponseEncoder[E],
+                        throwableResponseLogger: ErrorResponseLogger[Throwable],
+                        throwableResponseEncoder: ErrorResponseEncoder[Throwable],
+                        SyncF: Sync[F],
+                       ): EitherT[F, Response[F], A] =
+      eitherT.value.orErrorResponse(status).flatMap(_.toErrorResponse(status))
+  }
+
+  implicit class OptionTOps[F[_], A](val optionT: OptionT[F, A]) extends AnyVal {
+    def toErrorResponse(status: Status)
+                       (implicit
+                        errorResponseLogger: ErrorResponseLogger[Unit],
+                        errorResponseEncoder: ErrorResponseEncoder[Unit],
+                        throwableResponseLogger: ErrorResponseLogger[Throwable],
+                        throwableResponseEncoder: ErrorResponseEncoder[Throwable],
+                        SyncF: Sync[F],
+                       ): EitherT[F, Response[F], A] =
+      optionT.value.orErrorResponse(status).flatMap(_.toErrorResponse(status))
   }
 
   implicit def eitherTNothingOps[F[_], E](eitherT: EitherT[F, E, Nothing]): EitherTOps[F, E, Nothing] =

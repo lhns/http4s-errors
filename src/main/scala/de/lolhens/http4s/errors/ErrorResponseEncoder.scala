@@ -6,6 +6,10 @@ import org.http4s.{Response, Status}
 
 trait ErrorResponseEncoder[-E] {
   def response[F[_] : Sync](status: Status, error: E): F[Response[F]]
+
+  final def contramap[E2](f: E2 => E): ErrorResponseEncoder[E2] = new ErrorResponseEncoder[E2] {
+    override def response[F[_] : Sync](status: Status, error: E2): F[Response[F]] = ErrorResponseEncoder.this.response(status, f(error))
+  }
 }
 
 object ErrorResponseEncoder {
@@ -16,13 +20,35 @@ object ErrorResponseEncoder {
       Sync[F].delay(Response[F](status).withEntity(f(status, error)))
   }
 
+  private val _errorResponseEncoderResponse: ErrorResponseEncoder[Response[Any]] = new ErrorResponseEncoder[Response[Any]] {
+    override def response[F[_] : Sync](status: Status, error: Response[Any]): F[Response[F]] =
+      Sync[F].pure(error.asInstanceOf[Response[F]])
+  }
+
+  @inline implicit def errorResponseEncoderResponse[F[_]]: ErrorResponseEncoder[Response[F]] =
+    _errorResponseEncoderResponse.asInstanceOf[ErrorResponseEncoder[Response[F]]]
+
+  object empty {
+    private val _emptyErrorResponseEncoder: ErrorResponseEncoder[Any] =
+      instance((_, _) => "")
+
+    @inline implicit def emptyErrorResponseEncoder[E]: ErrorResponseEncoder[E] = _emptyErrorResponseEncoder
+  }
+
   object status {
-    implicit val statusErrorResponseEncoder: ErrorResponseEncoder[Throwable] =
+    private val _statusErrorResponseEncoder: ErrorResponseEncoder[Any] =
       instance((status, _) => status.reason)
+
+    @inline implicit def statusErrorResponseEncoder[E]: ErrorResponseEncoder[E] = _statusErrorResponseEncoder
+  }
+
+  object string {
+    implicit val statusErrorResponseEncoderString: ErrorResponseEncoder[String] =
+      instance((_, string) => string)
   }
 
   object stacktrace {
-    implicit val stacktraceErrorResponseEncoder: ErrorResponseEncoder[Throwable] =
+    implicit val stacktraceErrorResponseEncoderThrowable: ErrorResponseEncoder[Throwable] =
       instance((_, throwable) => throwable.stackTraceString)
   }
 
