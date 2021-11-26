@@ -53,6 +53,8 @@ lazy val commonSettings_scala2: SettingsDefinition = Def.settings(
   addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 )
 
+name := (core.projectRefs.head / name).value
+
 val V = new {
   val http4s = "0.23.6"
 }
