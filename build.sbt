@@ -13,40 +13,40 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
 
   licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0")),
 
-homepage := Some(url("https://github.com/LolHens/http4s-errors")),
-scmInfo := Some(
-  ScmInfo(
-    url("https://github.com/LolHens/http4s-errors"),
-    "scm:git@github.com:LolHens/http4s-errors.git"
-  )
-),
-developers := List(
-  Developer(id = "LolHens", name = "Pierre Kisters", email = "pierrekisters@gmail.com", url = url("https://github.com/LolHens/"))
-),
+  homepage := Some(url("https://github.com/LolHens/http4s-errors")),
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/LolHens/http4s-errors"),
+      "scm:git@github.com:LolHens/http4s-errors.git"
+    )
+  ),
+  developers := List(
+    Developer(id = "LolHens", name = "Pierre Kisters", email = "pierrekisters@gmail.com", url = url("https://github.com/LolHens/"))
+  ),
 
-libraryDependencies ++= Seq(
-  "ch.qos.logback" % "logback-classic" % "1.2.7" % Test,
-  "de.lolhens" %%% "munit-tagless-final" % "0.2.0" % Test,
-  "org.scalameta" %%% "munit" % "0.7.29" % Test,
-),
+  libraryDependencies ++= Seq(
+    "ch.qos.logback" % "logback-classic" % "1.2.7" % Test,
+    "de.lolhens" %%% "munit-tagless-final" % "0.2.0" % Test,
+    "org.scalameta" %%% "munit" % "0.7.29" % Test,
+  ),
 
-testFrameworks += new TestFramework("munit.Framework"),
+  testFrameworks += new TestFramework("munit.Framework"),
 
-Compile / doc / sources := Seq.empty,
+  Compile / doc / sources := Seq.empty,
 
-publishMavenStyle := true,
+  publishMavenStyle := true,
 
-publishTo := sonatypePublishToBundle.value,
+  publishTo := sonatypePublishToBundle.value,
 
-credentials ++= (for {
-  username <- sys.env.get("SONATYPE_USERNAME")
-  password <- sys.env.get("SONATYPE_PASSWORD")
-} yield Credentials(
-  "Sonatype Nexus Repository Manager",
-  "oss.sonatype.org",
-  username,
-  password
-)).toList
+  credentials ++= (for {
+    username <- sys.env.get("SONATYPE_USERNAME")
+    password <- sys.env.get("SONATYPE_PASSWORD")
+  } yield Credentials(
+    "Sonatype Nexus Repository Manager",
+    "oss.sonatype.org",
+    username,
+    password
+  )).toList
 )
 
 lazy val commonSettings_scala2: SettingsDefinition = Def.settings(
