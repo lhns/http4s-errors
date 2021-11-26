@@ -1,5 +1,6 @@
 package de.lolhens.http4s.errors
 
+import cats.Id
 import cats.effect.Sync
 import de.lolhens.http4s.errors.syntax._
 import org.http4s.{Response, Status}
@@ -20,8 +21,8 @@ object ErrorResponseEncoder {
       Sync[F].delay(Response[F](status).withEntity(f(status, error)))
   }
 
-  private val _errorResponseEncoderResponse: ErrorResponseEncoder[Response[Any]] = new ErrorResponseEncoder[Response[Any]] {
-    override def response[F[_] : Sync](status: Status, error: Response[Any]): F[Response[F]] =
+  private val _errorResponseEncoderResponse: ErrorResponseEncoder[Response[Id]] = new ErrorResponseEncoder[Response[Id]] {
+    override def response[F[_] : Sync](status: Status, error: Response[Id]): F[Response[F]] =
       Sync[F].pure(error.asInstanceOf[Response[F]])
   }
 
