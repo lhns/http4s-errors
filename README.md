@@ -8,7 +8,7 @@
 ### build.sbt
 ```sbt
 // use this snippet for http4s 0.23
-libraryDependencies += "de.lolhens" %% "http4s-errors" % "0.4.0"
+libraryDependencies += "de.lolhens" %% "http4s-errors" % "0.4.1"
 
 // use this snippet for http4s 0.22
 libraryDependencies += "de.lolhens" %% "http4s-errors" % "0.1.2"
