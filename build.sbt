@@ -57,7 +57,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
 name := (core.projectRefs.head / name).value
 
 val V = new {
-  val http4s = "0.23.6"
+  val http4s = "0.23.7"
 }
 
 lazy val root: Project =
