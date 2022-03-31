@@ -3,7 +3,8 @@ package de.lolhens.http4s.errors
 import cats.Id
 import cats.effect.Sync
 import de.lolhens.http4s.errors.syntax._
-import org.http4s.{Response, Status}
+import fs2.Pure
+import org.http4s.{Entity, EntityEncoder, Headers, Response, Status}
 
 trait ErrorResponseEncoder[-E] {
   def response[F[_] : Sync](status: Status, error: E): F[Response[F]]
@@ -16,9 +17,21 @@ trait ErrorResponseEncoder[-E] {
 object ErrorResponseEncoder {
   def apply[E](implicit errorResponseEncoder: ErrorResponseEncoder[E]): ErrorResponseEncoder[E] = errorResponseEncoder
 
-  def instance[E](f: (Status, E) => String): ErrorResponseEncoder[E] = new ErrorResponseEncoder[E] {
-    override def response[F[_] : Sync](status: Status, error: E): F[Response[F]] =
+  def instance[E, R](f: (Status, E) => R)(implicit entityEncoder: EntityEncoder[Id, R]): ErrorResponseEncoder[E] = new ErrorResponseEncoder[E] {
+    override def response[F[_] : Sync](status: Status, error: E): F[Response[F]] = {
+      implicit val entityEncoderF: EntityEncoder[F, R] = new EntityEncoder[F, R] {
+        override def toEntity(a: R): Entity[F] = {
+          val entity = entityEncoder.toEntity(a)
+          Entity[F](
+            body = entity.body.asInstanceOf[fs2.Stream[Pure, Byte]].covary[F],
+            length = entity.length
+          )
+        }
+
+        override def headers: Headers = entityEncoder.headers
+      }
       Sync[F].delay(Response[F](status).withEntity(f(status, error)))
+    }
   }
 
   private val _errorResponseEncoderResponse: ErrorResponseEncoder[Response[Id]] = new ErrorResponseEncoder[Response[Id]] {

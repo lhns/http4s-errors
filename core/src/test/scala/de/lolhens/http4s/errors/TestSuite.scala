@@ -4,6 +4,7 @@ import cats.effect.IO
 import de.lolhens.http4s.errors.ErrorResponseEncoder.stacktrace._
 import de.lolhens.http4s.errors.ErrorResponseLogger.stderr._
 import de.lolhens.http4s.errors.syntax._
+import org.http4s.Status
 import org.http4s.dsl.io._
 
 class TestSuite extends IOSuite {
@@ -24,5 +25,15 @@ class TestSuite extends IOSuite {
           assertEquals(response.status.code, InternalServerError.code)
           assert(clue(string).contains("expected error"))
       }
+  }
+
+  test("ErrorResponseEncoder.instance") {
+    val testMessage = "test"
+    ErrorResponseEncoder.string.statusErrorResponseEncoderString.response[IO](
+      Status.InternalServerError,
+      testMessage
+    ).flatMap(_.as[String]).map(string =>
+      assertEquals(string, testMessage)
+    )
   }
 }
