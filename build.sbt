@@ -25,7 +25,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
   ),
 
   libraryDependencies ++= Seq(
-    "ch.qos.logback" % "logback-classic" % "1.4.4" % Test,
+    "ch.qos.logback" % "logback-classic" % "1.4.5" % Test,
     "de.lolhens" %%% "munit-tagless-final" % "0.2.0" % Test,
     "org.scalameta" %%% "munit" % "0.7.29" % Test,
   ),
@@ -77,7 +77,7 @@ lazy val core = projectMatrix.in(file("core"))
 
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % "2.0.3",
-      "org.typelevel" %%% "cats-effect" % "3.4.0",
+      "org.typelevel" %%% "cats-effect" % "3.4.1",
       "org.http4s" %%% "http4s-core" % V.http4s,
       "org.http4s" %%% "http4s-dsl" % V.http4s % Test,
     ),
