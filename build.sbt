@@ -77,7 +77,7 @@ lazy val core = projectMatrix.in(file("core"))
 
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % "2.0.5",
-      "org.typelevel" %%% "cats-effect" % "3.4.1",
+      "org.typelevel" %%% "cats-effect" % "3.4.2",
       "org.http4s" %%% "http4s-core" % V.http4s,
       "org.http4s" %%% "http4s-dsl" % V.http4s % Test,
     ),
