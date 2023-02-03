@@ -2,11 +2,22 @@ lazy val scalaVersions = Seq("3.2.2", "2.13.10", "2.12.17")
 
 ThisBuild / scalaVersion := scalaVersions.head
 ThisBuild / versionScheme := Some("early-semver")
+ThisBuild / organization := "de.lhns"
+name := (core.projectRefs.head / name).value
+
+val V = new {
+  val betterMonadicFor = "0.3.1"
+  val catsEffect = "3.4.5"
+  val http4s = "0.23.18"
+  val logbackClassic = "1.4.5"
+  val munit = "0.7.29"
+  val munitTaglessFinal = "0.2.0"
+  val slf4j = "2.0.6"
+}
 
 lazy val commonSettings: SettingsDefinition = Def.settings(
-  organization := "de.lolhens",
   version := {
-    val Tag = "refs/tags/(.*)".r
+    val Tag = "refs/tags/v?([0-9]+(?:\\.[0-9]+)+(?:[+-].*)?)".r
     sys.env.get("CI_VERSION").collect { case Tag(tag) => tag }
       .getOrElse("0.0.1-SNAPSHOT")
   },
@@ -16,25 +27,25 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
   homepage := scmInfo.value.map(_.browseUrl),
   scmInfo := Some(
     ScmInfo(
-      url("https://github.com/LolHens/http4s-errors"),
-      "scm:git@github.com:LolHens/http4s-errors.git"
+      url("https://github.com/lhns/http4s-errors"),
+      "scm:git@github.com:lhns/http4s-errors.git"
     )
   ),
   developers := List(
-    Developer(id = "LolHens", name = "Pierre Kisters", email = "pierrekisters@gmail.com", url = url("https://github.com/LolHens/"))
+    Developer(id = "lhns", name = "Pierre Kisters", email = "pierrekisters@gmail.com", url = url("https://github.com/lhns/"))
   ),
 
   libraryDependencies ++= Seq(
-    "ch.qos.logback" % "logback-classic" % "1.4.5" % Test,
-    "de.lolhens" %%% "munit-tagless-final" % "0.2.0" % Test,
-    "org.scalameta" %%% "munit" % "0.7.29" % Test,
+    "ch.qos.logback" % "logback-classic" % V.logbackClassic % Test,
+    "de.lolhens" %%% "munit-tagless-final" % V.munitTaglessFinal % Test,
+    "org.scalameta" %%% "munit" % V.munit % Test,
   ),
 
   testFrameworks += new TestFramework("munit.Framework"),
 
   libraryDependencies ++= virtualAxes.?.value.getOrElse(Seq.empty).collectFirst {
     case VirtualAxis.ScalaVersionAxis(version, _) if version.startsWith("2.") =>
-      compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+      compilerPlugin("com.olegpy" %% "better-monadic-for" % V.betterMonadicFor)
   },
 
   Compile / doc / sources := Seq.empty,
@@ -43,22 +54,34 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
 
   publishTo := sonatypePublishToBundle.value,
 
+  sonatypeCredentialHost := {
+    if (sonatypeProfileName.value == "de.lolhens")
+      "oss.sonatype.org"
+    else
+      "s01.oss.sonatype.org"
+  },
+
   credentials ++= (for {
     username <- sys.env.get("SONATYPE_USERNAME")
     password <- sys.env.get("SONATYPE_PASSWORD")
   } yield Credentials(
     "Sonatype Nexus Repository Manager",
-    "oss.sonatype.org",
+    sonatypeCredentialHost.value,
     username,
     password
-  )).toList
+  )).toList,
+
+  pomExtra := {
+    if (sonatypeProfileName.value == "de.lolhens")
+      <distributionManagement>
+        <relocation>
+          <groupId>de.lhns</groupId>
+        </relocation>
+      </distributionManagement>
+    else
+      pomExtra.value
+  }
 )
-
-name := (core.projectRefs.head / name).value
-
-val V = new {
-  val http4s = "0.23.18"
-}
 
 lazy val root: Project =
   project
@@ -76,8 +99,8 @@ lazy val core = projectMatrix.in(file("core"))
     name := "http4s-errors",
 
     libraryDependencies ++= Seq(
-      "org.slf4j" % "slf4j-api" % "2.0.6",
-      "org.typelevel" %%% "cats-effect" % "3.4.5",
+      "org.slf4j" % "slf4j-api" % V.slf4j,
+      "org.typelevel" %%% "cats-effect" % V.catsEffect,
       "org.http4s" %%% "http4s-core" % V.http4s,
       "org.http4s" %%% "http4s-dsl" % V.http4s % Test,
     ),
